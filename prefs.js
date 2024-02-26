@@ -229,11 +229,11 @@ export default class HassPrefs extends ExtensionPreferences  {
 
     buildGeneralSettingsPage() {
         let page = new Adw.PreferencesPage({
-            title: _('General Settings'),
+            title: _(''),
             icon_name: "preferences-other-symbolic",
         });
 
-        const general_group = new Adw.PreferencesGroup({ title: _('General Settings')});
+        const general_group = new Adw.PreferencesGroup({ title: _('WHY IS THIS NOT WORKING??!?!?!?')});
         page.add(general_group);
 
         general_group.add(this.createStringSettingRow(Settings.HASS_URL));
