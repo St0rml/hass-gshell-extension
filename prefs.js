@@ -103,6 +103,15 @@ class SettingsPage {
                           [rowEntry.name, rowEntry.entity_id]
                       );
                       currentEntities.splice(index, 1);
+
+                    let rowIndex = this.checkedRows.indexOf(row);
+                    if (index > -1) { 
+                        this.checkedRows.splice(rowIndex, 1);
+                    }
+                    this.checkedList.remove(row);
+
+                    this.unCheckedRows.push(row);
+                    this.unCheckedList.append(row);
                   }
                   else if (index <= -1 && checked) {
                       Utils._log(
@@ -110,6 +119,13 @@ class SettingsPage {
                           [rowEntry.name, rowEntry.entity_id]
                       );
                       currentEntities.push(rowEntry.entity_id);
+                      let rowIndex = this.unCheckedRows.indexOf(row);
+                      if (index > -1) { 
+                          this.unCheckedRows.splice(rowIndex, 1);
+                      }
+                      this.unCheckedList.remove(row);
+                      this.checkedRows.push(row);
+                      this.checkedList.append(row);
                   }
                   else {
                       Utils._log(
@@ -119,7 +135,7 @@ class SettingsPage {
                       return;
                   }
                   this._mscOptions.setEnabledByType(this.type, entries.map(
-                      ent => ent.entity_id
+                      (ent, index) => ent.entity_id
                   ).filter(
                       ent => currentEntities.includes(ent)
                   ));
@@ -127,7 +143,6 @@ class SettingsPage {
                       "%s entries enabled: %s",
                       [this._mscOptions.getEnabledByType(this.type).length, this._mscOptions.getEnabledByType(this.type).join(', ')]
                   );
-                  this.refresh()
                 }
             );
             if (enabledEntities.includes(entry.entity_id)) {
@@ -137,7 +152,6 @@ class SettingsPage {
                 this.unCheckedRows.push(row);
                 this.unCheckedList.append(row);
             }
-            
         }
 
         Utils.applyDnD(this.checkedList)
