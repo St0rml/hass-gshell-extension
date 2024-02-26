@@ -142,11 +142,8 @@ class SettingsPage {
 
         let dragHandle = new Gtk.Image({
             icon_name: "list-drag-handle-symbolic",
-            styles: [
-                "dim-label"
-              ]  
         })
-
+        dragHandle.add_css_class("dim-label")
         // Create a switch and bind its value to the `show-indicator` key
         let toggle = new Gtk.CheckButton({
             active: checked,
