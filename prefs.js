@@ -139,7 +139,7 @@ class SettingsPage {
             
         }
 
-        Utils.applyDnD(this.checkedList.append(row))
+        Utils.applyDnD(this.checkedList)
     }
 
     deleteRows() {
