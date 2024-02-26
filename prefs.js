@@ -80,8 +80,8 @@ class SettingsPage {
             let row = SettingsPage.createTextRow(
                 _(`No ${this.type} found. Please check your Home-Assistant connection settings.`)
             );
-            this.rows.push(row);
-            this.list.add(row);
+            this.unCheckedRows.push(row);
+            this.unCheckedList.add(row);
             return;
         }
 
@@ -144,9 +144,12 @@ class SettingsPage {
 
     deleteRows() {
         // Remove previously created rows
-        for (let row of this.rows)
+        for (let row of this.unCheckedRows)
             this.group.remove(row);
-        this.rows = [];
+        this.unCheckedRows = [];
+        for (let row of this.checkedRows)
+            this.group.remove(row);
+        this.checkedRows = [];
     }
 
     static createEntityRow(entity, checked, on_toggle) {
@@ -187,7 +190,8 @@ class SettingsPage {
     destroy() {
         this.page = null;
         this.group = null;
-        this.rows = [];
+        this.unCheckedRows = [];
+        this.checkedRows =  [];
     }
 }
 
