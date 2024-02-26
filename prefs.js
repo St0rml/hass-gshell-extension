@@ -71,7 +71,7 @@ class SettingsPage {
 
         if (!entries.length) {
             let row = SettingsPage.createTextRow(
-                _(`No ${this.type} found. BLABLABLABLABL.`)
+                _(`No ${this.type} found. Please check your Home-Assistant connection settings.`)
             );
             this.rows.push(row);
             this.group.add(row);
