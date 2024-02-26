@@ -27,7 +27,7 @@ class SettingsPage {
         let iconName;
         switch (this.type) {
             case "togglable":
-                title = _('Togglables');
+                title = _('TESTING');
                 iconName = "system-shutdown-symbolic";
                 break;
             case "runnable":
