@@ -125,6 +125,7 @@ class SettingsPage {
             this.rows.push(row);
             this.group.add(row);
         }
+        Utils.applyDnD(this.group)
     }
 
     deleteRows() {
@@ -139,6 +140,13 @@ class SettingsPage {
             title: "%s (%s)".format(entity.name, entity.entity_id),
         });
 
+        let dragHandle = new Gtk.Image({
+            icon_name: "list-drag-handle-symbolic",
+            styles: [
+                "dim-label"
+              ]  
+        })
+
         // Create a switch and bind its value to the `show-indicator` key
         let toggle = new Gtk.CheckButton({
             active: checked,
@@ -146,6 +154,7 @@ class SettingsPage {
         });
 
         // Add the switch to the row
+        row.add_prefix(dragHandle);
         row.add_suffix(toggle);
         row.activatable_widget = toggle;
 
