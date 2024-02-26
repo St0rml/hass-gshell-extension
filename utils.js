@@ -716,6 +716,13 @@ export function applyDnD(list) {
             css_classes: ["dim-label"],
           }),
         );
+
+        drag_row.add_sufix(
+            new Gtk.CheckButton({
+                active: checked,
+                valign: Gtk.Align.CENTER,
+            })
+          );
   
         drag_widget.append(drag_row);
         drag_widget.drag_highlight_row(drag_row);
@@ -754,4 +761,5 @@ export function applyDnD(list) {
       return true;
     });
   }
+
   

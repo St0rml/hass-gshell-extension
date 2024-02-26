@@ -19,7 +19,10 @@ class SettingsPage {
         this._mscOptions = mscOptions;
         this.page = null;
         this.group = null;
-        this.rows = [];
+        this.checkedList = null;
+        this.unCheckedList = null;
+        this.checkedRows = [];
+        this.unCheckedRows = [];
     }
 
     get pageConfig() {
@@ -52,6 +55,9 @@ class SettingsPage {
         });
 
         this.group = new Adw.PreferencesGroup({ title: _(`Choose which ${this.type}s should appear in the menu:`)});
+        this.checkedList = new Gtk.ListBox({css_classes: ["boxed-list"]})
+        this.unCheckedList = new Gtk.ListBox({css_classes: ["boxed-list"]})
+        this.group.add(this.list)
         this.page.add(this.group);
         this.window.add(this.page);
         Utils.connectSettings([Settings.HASS_ENTITIES_CACHE], this.refresh.bind(this));
@@ -74,7 +80,7 @@ class SettingsPage {
                 _(`No ${this.type} found. Please check your Home-Assistant connection settings.`)
             );
             this.rows.push(row);
-            this.group.add(row);
+            this.list.add(row);
             return;
         }
 
@@ -122,10 +128,17 @@ class SettingsPage {
                   );
                 }
             );
-            this.rows.push(row);
-            this.group.add(row);
+            if (enabledEntities.includes(entry.entity_id)) {
+                this.checkedRows.push(row);
+                this.checkedList.add(row);
+            } else {
+                this.unCheckedRows.push(row);
+                this.unCheckedList.add(row);
+            }
+            
         }
-        Utils.applyDnD(this.group)
+
+        Utils.applyDnD(this.checkedList.add(row))
     }
 
     deleteRows() {
@@ -139,11 +152,14 @@ class SettingsPage {
         let row = new Adw.ActionRow({
             title: "%s (%s)".format(entity.name, entity.entity_id),
         });
-
-        let dragHandle = new Gtk.Image({
-            icon_name: "list-drag-handle-symbolic",
-        })
-        dragHandle.add_css_class("dim-label")
+        if (checked) {
+            row.add_prefix(
+                new Gtk.Image({
+                    icon_name: "list-drag-handle-symbolic",
+                    css_classes: ["dim-label"],
+                }),
+            );
+        }
         // Create a switch and bind its value to the `show-indicator` key
         let toggle = new Gtk.CheckButton({
             active: checked,
@@ -151,7 +167,6 @@ class SettingsPage {
         });
 
         // Add the switch to the row
-        row.add_prefix(dragHandle);
         row.add_suffix(toggle);
         row.activatable_widget = toggle;
 
