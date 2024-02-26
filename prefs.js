@@ -57,7 +57,8 @@ class SettingsPage {
         this.group = new Adw.PreferencesGroup({ title: _(`Choose which ${this.type}s should appear in the menu:`)});
         this.checkedList = new Gtk.ListBox({css_classes: ["boxed-list"]})
         this.unCheckedList = new Gtk.ListBox({css_classes: ["boxed-list"]})
-        this.group.add(this.list)
+        this.group.add(this.checkedList)
+        this.group.add(this.unCheckedList)
         this.page.add(this.group);
         this.window.add(this.page);
         Utils.connectSettings([Settings.HASS_ENTITIES_CACHE], this.refresh.bind(this));
