@@ -81,7 +81,7 @@ class SettingsPage {
                 _(`No ${this.type} found. Please check your Home-Assistant connection settings.`)
             );
             this.unCheckedRows.push(row);
-            this.unCheckedList.add(row);
+            this.unCheckedList.append(row);
             return;
         }
 
@@ -131,15 +131,15 @@ class SettingsPage {
             );
             if (enabledEntities.includes(entry.entity_id)) {
                 this.checkedRows.push(row);
-                this.checkedList.add(row);
+                this.checkedList.append(row);
             } else {
                 this.unCheckedRows.push(row);
-                this.unCheckedList.add(row);
+                this.unCheckedList.append(row);
             }
             
         }
 
-        Utils.applyDnD(this.checkedList.add(row))
+        Utils.applyDnD(this.checkedList.append(row))
     }
 
     deleteRows() {
