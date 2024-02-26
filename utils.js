@@ -2,6 +2,7 @@ import Soup from 'gi://Soup';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Secret from 'gi://Secret';
+import Gtk from 'gi://Gtk';
 
 import * as Settings from './settings.js';
 
