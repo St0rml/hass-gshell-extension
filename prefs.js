@@ -127,6 +127,7 @@ class SettingsPage {
                       "%s entries enabled: %s",
                       [this._mscOptions.getEnabledByType(this.type).length, this._mscOptions.getEnabledByType(this.type).join(', ')]
                   );
+                  this.refresh()
                 }
             );
             if (enabledEntities.includes(entry.entity_id)) {
