@@ -175,7 +175,7 @@ class SettingsPage {
 
         this.newRows.push(row);
         this.newList.append(row);
-
+        console.log("Moving ROw! and refreshing!")
         this.refresh()
     }
 
