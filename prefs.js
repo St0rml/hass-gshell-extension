@@ -103,15 +103,6 @@ class SettingsPage {
                           [rowEntry.name, rowEntry.entity_id]
                       );
                       currentEntities.splice(index, 1);
-
-                    let rowIndex = this.checkedRows.indexOf(row);
-                    if (index > -1) { 
-                        this.checkedRows.splice(rowIndex, 1);
-                    }
-                    this.checkedList.remove(row);
-
-                    this.unCheckedRows.push(row);
-                    this.unCheckedList.append(row);
                   }
                   else if (index <= -1 && checked) {
                       Utils._log(
@@ -119,13 +110,6 @@ class SettingsPage {
                           [rowEntry.name, rowEntry.entity_id]
                       );
                       currentEntities.push(rowEntry.entity_id);
-                      let rowIndex = this.unCheckedRows.indexOf(row);
-                      if (index > -1) { 
-                          this.unCheckedRows.splice(rowIndex, 1);
-                      }
-                      this.unCheckedList.remove(row);
-                      this.checkedRows.push(row);
-                      this.checkedList.append(row);
                   }
                   else {
                       Utils._log(
@@ -139,6 +123,7 @@ class SettingsPage {
                   ).filter(
                       ent => currentEntities.includes(ent)
                   ));
+                  this.moveRow(row, checked);
                   Utils._log(
                       "%s entries enabled: %s",
                       [this._mscOptions.getEnabledByType(this.type).length, this._mscOptions.getEnabledByType(this.type).join(', ')]
@@ -165,6 +150,33 @@ class SettingsPage {
         for (let row of this.checkedRows)
             this.group.remove(row);
         this.checkedRows = [];
+    }
+
+    moveRow(row, gotChecked){
+        // True: move to checked list, False: move to unchecked List
+        let oldRows, newRows, oldList, newList;
+        if (gotChecked) {
+            newRows = this.checkedRows;
+            oldRows = this.unCheckedRows;
+            newList = this.checkedList;
+            oldList = this.unCheckedList;
+        } else {
+            oldRows = this.checkedRows;
+            newRows = this.unCheckedRows;
+            oldList = this.checkedList;
+            newList = this.unCheckedList;
+        }
+
+        let rowIndex = this.oldRows.indexOf(row);
+        if (index > -1) { 
+            this.oldRows.splice(rowIndex, 1);
+        }
+        this.oldList.remove(row);
+
+        this.newRows.push(row);
+        this.newList.append(row);
+
+        this.refresh()
     }
 
     static createEntityRow(entity, checked, on_toggle) {

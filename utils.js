@@ -761,5 +761,3 @@ export function applyDnD(list) {
       return true;
     });
   }
-
-  
