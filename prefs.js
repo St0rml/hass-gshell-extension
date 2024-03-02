@@ -257,12 +257,10 @@ class SettingsPage {
             });
         
             drag_source.connect("drag-begin", (_source, drag) => {
-                const drag_widget = new Gtk.ListBox();
-
                 const drag_widget_clamp = new Adw.Clamp({
                     maximum_size: row.get_width(),
                   });
-                
+                const drag_widget = new Gtk.ListBox();
 
                 drag_widget.set_size_request(row.get_width(), row.get_height());
                 drag_widget.add_css_class("boxed-list");
@@ -282,12 +280,12 @@ class SettingsPage {
                 drag_widget.append(drag_row);
                 
                 drag_widget.drag_highlight_row(drag_row);
-                
+
                 // Clamp drag_widgets size to row width of underlying listbox
                 drag_widget_clamp.set_child(drag_widget);
                 
                 const icon = Gtk.DragIcon.get_for_drag(drag);
-                icon.child = drag_widget;
+                icon.child = drag_widget_clamp;
                 drag.set_hotspot(drag_x, drag_y);
             });
         
