@@ -1,6 +1,8 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
+import GObject from "gi://GObject";
+import Gdk from "gi://Gdk";
 import Secret from 'gi://Secret';
 
 import * as Utils from './utils.js';
@@ -8,6 +10,24 @@ import * as Settings from './settings.js';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+
+
+var DraggableActionRow = GObject.registerClass ({
+    GTypeName: "DraggableActionRow"
+}, class DraggableActionRow extends Adw.ActionRow {
+    constructor(...args) {
+        super(...args);
+        this.entity_id = null;
+    }
+
+    getEntityId() {
+        return this.entity_id;
+    }
+
+    setEntityId(entity_id) {
+        this.entity_id = entity_id;
+    }
+});
 
 class SettingsPage {
     constructor(type, window, mscOptions) {
@@ -19,10 +39,9 @@ class SettingsPage {
         this._mscOptions = mscOptions;
         this.page = null;
         this.group = null;
-        this.checkedList = null;
-        this.unCheckedList = null;
-        this.checkedRows = [];
-        this.unCheckedRows = [];
+        this.checkedListBox = null;
+        this.unCheckedListBox = null;
+        this.drop_target = null;
     }
 
     get pageConfig() {
@@ -55,13 +74,15 @@ class SettingsPage {
         });
 
         this.group = new Adw.PreferencesGroup({ title: _(`Choose which ${this.type}s should appear in the menu:`)});
-        this.checkedList = new Gtk.ListBox({css_classes: ["boxed-list"]})
-        this.unCheckedList = new Gtk.ListBox({css_classes: ["boxed-list"]})
-        this.group.add(this.checkedList)
-        this.group.add(this.unCheckedList)
+        this.checkedListBox = new Gtk.ListBox({css_classes: ["boxed-list"],selection_mode: "none"})
+        this.unCheckedListBox = new Gtk.ListBox({css_classes: ["boxed-list"],selection_mode: "none"})
+        this.group.add(this.checkedListBox)
+        this.group.add(this.unCheckedListBox)
         this.page.add(this.group);
         this.window.add(this.page);
         Utils.connectSettings([Settings.HASS_ENTITIES_CACHE], this.refresh.bind(this));
+        this.drop_target = Gtk.DropTarget.new(Gtk.ListBoxRow, Gdk.DragAction.MOVE);
+        this.checkedListBox.add_controller(this.drop_target);
         this.refresh();
     }
 
@@ -80,8 +101,7 @@ class SettingsPage {
             let row = SettingsPage.createTextRow(
                 _(`No ${this.type} found. Please check your Home-Assistant connection settings.`)
             );
-            this.unCheckedRows.push(row);
-            this.unCheckedList.append(row);
+            this.unCheckedListBox.append(row);
             return;
         }
 
@@ -90,99 +110,87 @@ class SettingsPage {
             let row = SettingsPage.createEntityRow(
                 entry,
                 enabledEntities.includes(entry.entity_id),
-                (rowEntry, checked) => {
-                  Utils._log(
-                      "%s %s (%s) as panel entry",
-                      [checked ? "Check" : "Uncheck", rowEntry.name, rowEntry.entity_id]
-                  );
-                  let currentEntities = this._mscOptions.getEnabledByType(this.type);
-                  let index = currentEntities.indexOf(rowEntry.entity_id);
-                  if (index > -1 && !checked) { // then it exists and so we pop
-                      Utils._log(
-                          "Entry %s (%s) currently present, remove it",
-                          [rowEntry.name, rowEntry.entity_id]
-                      );
-                      currentEntities.splice(index, 1);
-                  }
-                  else if (index <= -1 && checked) {
-                      Utils._log(
-                          "Entry %s (%s) not currently present, add it",
-                          [rowEntry.name, rowEntry.entity_id]
-                      );
-                      currentEntities.push(rowEntry.entity_id);
-                  }
-                  else {
-                      Utils._log(
-                          "Entry %s (%s) currently %s, no change",
-                          [rowEntry.name, rowEntry.entity_id, checked ? "present" : "not present"]
-                      );
-                      return;
-                  }
-                  this._mscOptions.setEnabledByType(this.type, entries.map(
-                      (ent, index) => ent.entity_id
-                  ).filter(
-                      ent => currentEntities.includes(ent)
-                  ));
-                  this.moveRow(row, checked);
-                  Utils._log(
-                      "%s entries enabled: %s",
-                      [this._mscOptions.getEnabledByType(this.type).length, this._mscOptions.getEnabledByType(this.type).join(', ')]
-                  );
-                }
-            );
+                this.onToggle)
             if (enabledEntities.includes(entry.entity_id)) {
-                this.checkedRows.push(row);
-                this.checkedList.append(row);
+                this.checkedListBox.append(row);
             } else {
-                this.unCheckedRows.push(row);
-                this.unCheckedList.append(row);
+                this.unCheckedListBox.append(row);
             }
         }
 
-        Utils.applyDnD(this.checkedList)
+        this.applyDnD(this.checkedListBox);
+    }
+
+    onToggle = (entity, row, isChecked) => {
+        Utils._log(
+            "%s %s (%s) as panel entry",
+            [isChecked ? "Check" : "Uncheck", entity.name, entity.entity_id]
+        );
+        
+        let currentEntities = this._mscOptions.getEnabledByType(this.type);
+        let index = currentEntities.indexOf(entity.entity_id);
+        Utils._log(
+            "%s (%s) index is  %s in currentEntities",
+            [ entity.name, entity.entity_id, index] 
+        );
+        if (index > -1 && !isChecked) { // then it exists and so we pop
+            Utils._log(
+                "Entry %s (%s) currently present, remove it",
+                [entity.name, entity.entity_id]
+            );
+            this.checkedListBox.remove(row);
+            this.unCheckedListBox.append(
+                SettingsPage.createEntityRow(
+                    entity,
+                    isChecked,
+                    this.onToggle
+                )
+            );
+            currentEntities.splice(index, 1);
+        }
+        else if (index <= -1 && isChecked) {
+            Utils._log(
+                "Entry %s (%s) not currently present, add it",
+                [entity.name, entity.entity_id]
+            );
+            this.unCheckedListBox.remove(row);
+            this.checkedListBox.append(
+                SettingsPage.createEntityRow(
+                    entity,
+                    isChecked,
+                    this.onToggle
+                )
+            );
+            currentEntities.push(entity.entity_id);
+        }
+        else {
+            Utils._log(
+                "Entry %s (%s) currently %s, no change",
+                [entity.name, entity.entity_id, isChecked ? "present" : "not present"]
+            );
+            return;
+        }
+        this._mscOptions.setEnabledByType(this.type, currentEntities);
+        this.applyDnD(this.checkedListBox);
+        Utils._log(
+            "%s entries enabled: %s",
+            [this._mscOptions.getEnabledByType(this.type).length, this._mscOptions.getEnabledByType(this.type).join(', ')]
+        );
     }
 
     deleteRows() {
         // Remove previously created rows
-        for (let row of this.unCheckedRows)
-            this.group.remove(row);
-        this.unCheckedRows = [];
-        for (let row of this.checkedRows)
-            this.group.remove(row);
-        this.checkedRows = [];
-    }
-
-    moveRow(row, gotChecked){
-        // True: move to checked list, False: move to unchecked List
-        let oldRows, newRows, oldList, newList;
-        if (gotChecked) {
-            newRows = this.checkedRows;
-            oldRows = this.unCheckedRows;
-            newList = this.checkedList;
-            oldList = this.unCheckedList;
-        } else {
-            oldRows = this.checkedRows;
-            newRows = this.unCheckedRows;
-            oldList = this.checkedList;
-            newList = this.unCheckedList;
-        }
-
-        let rowIndex = this.oldRows.indexOf(row);
-        if (index > -1) { 
-            this.oldRows.splice(rowIndex, 1);
-        }
-        this.oldList.remove(row);
-
-        this.newRows.push(row);
-        this.newList.append(row);
-        log("Moving ROw! and refreshing!");
-        this.refresh();
+        this.unCheckedListBox.remove_all();
+        this.checkedListBox.remove_all();
     }
 
     static createEntityRow(entity, checked, on_toggle) {
-        let row = new Adw.ActionRow({
+        let row = new DraggableActionRow({
             title: "%s (%s)".format(entity.name, entity.entity_id),
         });
+        Utils._log("Pre setting entity id");
+        row.setEntityId(entity.entity_id);
+        Utils._log("%s", [row.getEntityId()]);
         if (checked) {
             row.add_prefix(
                 new Gtk.Image({
@@ -202,7 +210,7 @@ class SettingsPage {
         row.activatable_widget = toggle;
 
         toggle.connect('notify::active', () => {
-            on_toggle(entity, toggle.active);
+            on_toggle(entity, row, toggle.active);
         });
 
         return row;
@@ -217,9 +225,108 @@ class SettingsPage {
     destroy() {
         this.page = null;
         this.group = null;
-        this.unCheckedRows = [];
-        this.checkedRows =  [];
+        this.checkedListBox = null;
+        this.unCheckedListBox = null;
     }
+
+    applyDnD(list) {      
+        // Iterate over ListBox children
+        for (const row of list) {
+            let drag_x;
+            let drag_y;
+        
+            const drop_controller = new Gtk.DropControllerMotion();
+        
+            const drag_source = new Gtk.DragSource({
+                actions: Gdk.DragAction.MOVE,
+            });
+        
+            row.add_controller(drag_source);
+            row.add_controller(drop_controller);
+        
+            // Drag handling
+            drag_source.connect("prepare", (_source, x, y) => {
+                drag_x = x;
+                drag_y = y;
+            
+                const value = new GObject.Value();
+                value.init(Gtk.ListBoxRow);
+                value.set_object(row);
+            
+                return Gdk.ContentProvider.new_for_value(value);
+            });
+        
+            drag_source.connect("drag-begin", (_source, drag) => {
+                const drag_widget = new Gtk.ListBox();
+
+                const drag_widget_clamp = new Adw.Clamp({
+                    maximum_size: row.get_width(),
+                  });
+                
+
+                drag_widget.set_size_request(row.get_width(), row.get_height());
+                drag_widget.add_css_class("boxed-list");
+                const drag_row = new Adw.ActionRow({ title: row.title });
+                drag_row.add_prefix(
+                    new Gtk.Image({
+                        icon_name: "list-drag-handle-symbolic",
+                        css_classes: ["dim-label"],
+                    }),
+                );
+                drag_row.add_suffix(
+                    new Gtk.CheckButton({
+                        active: true,
+                        valign: Gtk.Align.CENTER,
+                    })
+                );
+                drag_widget.append(drag_row);
+                
+                drag_widget.drag_highlight_row(drag_row);
+                
+                // Clamp drag_widgets size to row width of underlying listbox
+                drag_widget_clamp.set_child(drag_widget);
+                
+                const icon = Gtk.DragIcon.get_for_drag(drag);
+                icon.child = drag_widget;
+                drag.set_hotspot(drag_x, drag_y);
+            });
+        
+            // Update row visuals during DnD operation
+            drop_controller.connect("enter", () => {
+            list.drag_highlight_row(row);
+            });
+        
+            drop_controller.connect("leave", () => {
+            list.drag_unhighlight_row();
+            });
+        }
+      
+        // Drop Handling
+        this.drop_target.connect("drop", (_drop, value, _x, y) => {
+            Utils._log("Drop!")
+            const target_row = list.get_row_at_y(y);
+            const target_index = target_row.get_index();
+        
+            // If value or the target row is null, do not accept the drop
+            if (!value || !target_row) {
+                return false;
+            }            
+            list.remove(value);
+            list.insert(value, target_index);
+            let sortedEntities = [];
+            for (const row of list) {
+                sortedEntities.push(row.getEntityId());
+            }
+            target_row.set_state_flags(Gtk.StateFlags.NORMAL, true);
+            this._mscOptions.setEnabledByType(this.type, sortedEntities);
+            Utils._log("%s",[this._mscOptions.getEnabledByType(this.type)]);
+            // If everything is successful, return true to accept the drop
+            return true;
+        });
+      }
+    
+      
+
 }
 
 export default class HassPrefs extends ExtensionPreferences  {

@@ -2,10 +2,6 @@ import Soup from 'gi://Soup';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Secret from 'gi://Secret';
-import Adw from "gi://Adw";
-import GObject from "gi://GObject";
-import Gdk from "gi://Gdk";
-import Gtk from "gi://Gtk";
 
 import * as Settings from './settings.js';
 
@@ -382,13 +378,20 @@ export function getSensors(callback, on_error=null, only_enabled=false, force_re
         function(entities) {
             let sensors = [];
             for (let ent of entities) {
-                if (only_enabled && !mscOptions.enabledSensors.includes(ent.entity_id))
-                    continue;
+                if (only_enabled){
+                    if (!mscOptions.enabledSensors.includes(ent.entity_id))
+                        continue;
+                    else {
+                        sensors[mscOptions.enabledSensors.indexOf(ent.entity_id)] = mapSensor(ent);
+                        continue;
+                    }
+                }
                 if (!isSensor(ent))
                     continue;
                 sensors.push(mapSensor(ent));
             }
             _log("%s %ssensor entities found", [sensors.length, only_enabled?'enabled ':'']);
+            _log("%s", [sensors.map((s) => s.entity_id)]);
             callback(sensors);
         },
         on_error,
@@ -670,96 +673,3 @@ export function connectSettings(settings, callback, args=[]) {
 export function disconnectSettings(connectedSettingIds) {
     connectedSettingIds.forEach(id => _settings.disconnect(id));
 }
-
-
-export function applyDnD(list) {
-    let drop_target = Gtk.DropTarget.new(Gtk.ListBoxRow, Gdk.DragAction.MOVE);
-  
-    list.add_controller(drop_target);
-  
-    // Iterate over ListBox children
-    for (const row of list) {
-      let drag_x;
-      let drag_y;
-  
-      const drop_controller = new Gtk.DropControllerMotion();
-  
-      const drag_source = new Gtk.DragSource({
-        actions: Gdk.DragAction.MOVE,
-      });
-  
-      row.add_controller(drag_source);
-      row.add_controller(drop_controller);
-  
-      // Drag handling
-      drag_source.connect("prepare", (_source, x, y) => {
-        drag_x = x;
-        drag_y = y;
-  
-        const value = new GObject.Value();
-        value.init(Gtk.ListBoxRow);
-        value.set_object(row);
-  
-        return Gdk.ContentProvider.new_for_value(value);
-      });
-  
-      drag_source.connect("drag-begin", (_source, drag) => {
-        const drag_widget = new Gtk.ListBox();
-  
-        drag_widget.set_size_request(row.get_width(), row.get_height());
-        drag_widget.add_css_class("boxed-list");
-  
-        const drag_row = new Adw.ActionRow({ title: row.title });
-        drag_row.add_prefix(
-          new Gtk.Image({
-            icon_name: "list-drag-handle-symbolic",
-            css_classes: ["dim-label"],
-          }),
-        );
-
-        drag_row.add_sufix(
-            new Gtk.CheckButton({
-                active: checked,
-                valign: Gtk.Align.CENTER,
-            })
-          );
-  
-        drag_widget.append(drag_row);
-        drag_widget.drag_highlight_row(drag_row);
-  
-        const icon = Gtk.DragIcon.get_for_drag(drag);
-        icon.child = drag_widget;
-  
-        drag.set_hotspot(drag_x, drag_y);
-      });
-  
-      // Update row visuals during DnD operation
-      drop_controller.connect("enter", () => {
-        list.drag_highlight_row(row);
-      });
-  
-      drop_controller.connect("leave", () => {
-        list.drag_unhighlight_row();
-      });
-    }
-  
-    // Drop Handling
-    drop_target.connect("drop", (_drop, value, _x, y) => {
-      const target_row = list.get_row_at_y(y);
-      const target_index = target_row.get_index();
-  
-      // If value or the target row is null, do not accept the drop
-      if (!value || !target_row) {
-        return false;
-      }
-  
-      list.remove(value);
-      list.insert(value, target_index);
-      target_row.set_state_flags(Gtk.StateFlags.NORMAL, true);
-  
-      // If everything is successful, return true to accept the drop
-      return true;
-    });
-  }
-
-  
