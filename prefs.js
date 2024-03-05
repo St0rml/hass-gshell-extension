@@ -13,19 +13,19 @@ import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Ex
 
 
 var DraggableActionRow = GObject.registerClass ({
-    GTypeName: "DraggableActionRow"
+    GTypeName: "DraggableActionRow",
 }, class DraggableActionRow extends Adw.ActionRow {
     constructor(...args) {
         super(...args);
-        this.entity_id = null;
+        this._entity_id = null;
     }
 
     getEntityId() {
-        return this.entity_id;
+        return this._entity_id;
     }
 
     setEntityId(entity_id) {
-        this.entity_id = entity_id;
+        this._entity_id = entity_id;
     }
 });
 
