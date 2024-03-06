@@ -38,10 +38,15 @@ class SettingsPage {
         this.window = window;
         this._mscOptions = mscOptions;
         this.page = null;
+        this.box = null;
+        this.stack = null;
         this.group = null;
         this.checkedListBox = null;
         this.unCheckedListBox = null;
         this.drop_target = null;
+        this.searchBar = null;
+        this.searchEntry = null;
+        this.result_count = null;
     }
 
     get pageConfig() {
@@ -72,14 +77,54 @@ class SettingsPage {
             title: this.pageConfig.title,
             icon_name: this.pageConfig.iconName,
         });
-
+        this.status_page = new Adw.StatusPage( {
+            title: _("No results founds"),
+            description: _("Try a different search"),
+            icon_name: "edit-find-symbolic",
+            vexpand: true
+        });
+        this.box = new Gtk.Box({orientation: "vertical"});
+        this.stack = new Gtk.Stack({transition_type: "crossfade"});
         this.group = new Adw.PreferencesGroup({ title: _(`Choose which ${this.type}s should appear in the menu:`)});
         this.checkedListBox = new Gtk.ListBox({css_classes: ["boxed-list"],selection_mode: "none"})
         this.unCheckedListBox = new Gtk.ListBox({css_classes: ["boxed-list"],selection_mode: "none"})
-        this.group.add(this.checkedListBox)
-        this.group.add(this.unCheckedListBox)
+        this.searchBar = new Gtk.SearchBar();
+        this.searchBar.set_key_capture_widget(this.group);
+        this.searchEntry = new Gtk.SearchEntry({ search_delay: 100, placeholder_text: _(`Search ${this.type}s ...`)});
+
+        this.searchEntry.connect("search-changed", () => {
+            this.result_count = -1;
+            this.checkedListBox.invalidate_filter();
+            this.unCheckedListBox.invalidate_filter();
+            if (this.result_count === -1) this.page.visible_child = this.status_page;
+            else if (this.searchBar.search_mode_enabled) this.page.visible_child = this.group;
+          });
+
+        this.searchBar.set_child(this.searchEntry);
+        
+        function filter(row) {
+            const re = new RegExp(searchentry.text, "i");
+            const match = re.test(row.title);
+            if (match) this.result_count++;
+            return match;
+          }
+          
+        this.checkedListBox.set_filter_func(filter);
+        this.unCheckedListBox.set_filter_func(filter);
+        
+
+        this.group.add(this.checkedListBox);
+        this.group.add(this.unCheckedListBox);
+        
         this.page.add(this.group);
-        this.window.add(this.page);
+
+        this.stack.add_child(this.page);
+        this.stack.add_child(this.status_page);
+
+        this.box.append(this.searchBar);
+        this.box.append(this.stack)
+
+        this.window.add(this.stack);
         Utils.connectSettings([Settings.HASS_ENTITIES_CACHE], this.refresh.bind(this));
         this.drop_target = Gtk.DropTarget.new(Gtk.ListBoxRow, Gdk.DragAction.MOVE);
         this.checkedListBox.add_controller(this.drop_target);
@@ -188,9 +233,7 @@ class SettingsPage {
         let row = new DraggableActionRow({
             title: "%s (%s)".format(entity.name, entity.entity_id),
         });
-        Utils._log("Pre setting entity id");
         row.setEntityId(entity.entity_id);
-        Utils._log("%s", [row.getEntityId()]);
         if (checked) {
             row.add_prefix(
                 new Gtk.Image({
