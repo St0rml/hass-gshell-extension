@@ -78,29 +78,21 @@ class SettingsPage {
             title: this.pageConfig.title,
             icon_name: this.pageConfig.iconName,
         });
-        this.status_page = new Adw.StatusPage( {
-            title: _("No results founds"),
-            description: _("Try a different search"),
-            icon_name: "edit-find-symbolic",
-            vexpand: true
-        });
-
         this.group = new Adw.PreferencesGroup({ title: _(`Choose which ${this.type}s should appear in the menu:`)});
         this.box = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 15})
-        this.placeholder = SettingsPage.createTextRow(
-            _(`Search does not match any ${this.type}...`)
-        );
+        this.placeholder = SettingsPage.createTextRow(_(`Search does not match any ${this.type}...`));
         this.stack = new Gtk.Stack({transition_type: "crossfade"});
         this.checkedListBox = new Gtk.ListBox({css_classes: ["boxed-list"], selection_mode: "none"});
         this.unCheckedListBox = new Gtk.ListBox({css_classes: ["boxed-list"], selection_mode: "none"});
         this.searchBar = new Gtk.SearchBar({search_mode_enabled: true, show_close_button: false});
         this.searchBar.set_key_capture_widget(this.group);
         this.searchEntry = new Gtk.SearchEntry({search_delay: 100, placeholder_text: _(`Search ${this.type}s ...`)});
-            // THis is a comment
+         
         this.searchEntry.connect("search-changed", () => {
             this.result_count = -1;
             this.checkedListBox.invalidate_filter();
             this.unCheckedListBox.invalidate_filter();
+            // Show Placeholder when search does not match anything
             if (this.result_count === -1) {
                 this.stack.visible_child = this.placeholder;
             } else {
@@ -118,12 +110,9 @@ class SettingsPage {
             if (match) this.result_count++;
             return match;
         }
-        
 
         this.checkedListBox.set_filter_func(filter_func);
         this.unCheckedListBox.set_filter_func(filter_func);
-        
-       
         
         this.box.append(this.checkedListBox);
         this.box.append(this.unCheckedListBox);
@@ -132,13 +121,14 @@ class SettingsPage {
         this.group.add(this.searchBar);
         this.group.add(this.stack);
         this.page.add(this.group);
-
         this.window.add(this.page);
+
         Utils.connectSettings([Settings.HASS_ENTITIES_CACHE], this.refresh.bind(this));
+
         this.drop_target = Gtk.DropTarget.new(Gtk.ListBoxRow, Gdk.DragAction.MOVE);
         this.checkedListBox.add_controller(this.drop_target);
+
         this.refresh();
-        this.searchEntry.get_parent().add_css_class("custom-search-bar");
     }
 
     refresh(entries=null) {
@@ -382,7 +372,6 @@ class SettingsPage {
             }
             target_row.set_state_flags(Gtk.StateFlags.NORMAL, true);
             this._mscOptions.setEnabledByType(this.type, sortedEntities);
-            Utils._log("%s",[this._mscOptions.getEnabledByType(this.type)]);
             // If everything is successful, return true to accept the drop
             return true;
         });
