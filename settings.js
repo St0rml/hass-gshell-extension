@@ -112,10 +112,10 @@ export var MscOptions = class MscOptions {
     }
 
     // Togglable entities of menu
-    get enabledEntities() {
+    get enabledToggables() {
         return this._gsettings.get_strv(HASS_ENABLED_ENTITIES);
     }
-    set enabledEntities(entities) {
+    set enabledToggables(entities) {
         this._gsettings.set_strv(HASS_ENABLED_ENTITIES, entities);
     }
 
@@ -140,7 +140,7 @@ export var MscOptions = class MscOptions {
         if (type === "runnable") {
             return this.enabledRunnables; // calls the getter
         } else if (type === "togglable") {
-            return this.enabledEntities; // calls the getter
+            return this.enabledToggables; // calls the getter
         } else if (type === "sensor") {
             return this.enabledSensors; // calls the getter
         }
@@ -149,7 +149,7 @@ export var MscOptions = class MscOptions {
         if (type === "runnable") {
             this.enabledRunnables = enabledEntities; // calls the setter
         } else if (type === "togglable") {
-            this.enabledEntities = enabledEntities; // calls the setter
+            this.enabledToggables = enabledEntities; // calls the setter
         } else if (type === "sensor") {
             this.enabledSensors = enabledEntities; // calls the setter
         }
