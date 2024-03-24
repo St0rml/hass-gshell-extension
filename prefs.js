@@ -47,6 +47,7 @@ class SettingsPage {
         this.searchBar = null;
         this.searchEntry = null;
         this.result_count = null;
+        this.placeholder = null;
     }
 
     get pageConfig() {
@@ -85,31 +86,51 @@ class SettingsPage {
         });
 
         this.group = new Adw.PreferencesGroup({ title: _(`Choose which ${this.type}s should appear in the menu:`)});
-        this.checkedListBox = new Gtk.ListBox({css_classes: ["accent"], selection_mode: "none"});
-        this.unCheckedListBox = new Gtk.ListBox({css_classes: [""], selection_mode: "none"});
-        this.searchBar = new Gtk.SearchBar({css_classes: ["raised"], search_mode_enabled: true, show_close_button: false});
+        this.box = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 15})
+        this.placeholder = SettingsPage.createTextRow(
+            _(`Search does not match any ${this.type}...`)
+        );
+        this.stack = new Gtk.Stack({transition_type: "crossfade"});
+        this.checkedListBox = new Gtk.ListBox({css_classes: ["boxed-list"], selection_mode: "none"});
+        this.unCheckedListBox = new Gtk.ListBox({css_classes: ["boxed-list"], selection_mode: "none"});
+        this.searchBar = new Gtk.SearchBar({css_classes: ["boxed-list"], search_mode_enabled: true, show_close_button: false});
         this.searchBar.set_key_capture_widget(this.group);
-        this.searchEntry = new Gtk.SearchEntry({ css_classes: ["raised"], search_delay: 100, placeholder_text: _(`Search ${this.type}s ...`)});
+        this.searchEntry = new Gtk.SearchEntry({search_delay: 100, placeholder_text: _(`Search ${this.type}s ...`)});
 
         this.searchEntry.connect("search-changed", () => {
+            this.result_count = -1;
             this.checkedListBox.invalidate_filter();
             this.unCheckedListBox.invalidate_filter();
+            if (this.result_count === -1) {
+                this.stack.visible_child = this.placeholder;
+            } else {
+                this.stack.visible_child = this.box;
+            }            
           });
 
         this.searchBar.set_child(this.searchEntry);
+
+        this.searchBar.set_margin_bottom(25);
         
         let filter_func = (row) => {
             const re = new RegExp(this.searchEntry.text, "i");
-            return re.test(row.title);;
+            const match = re.test(row.title);
+            if (match) this.result_count++;
+            return match;
         }
-          
+        
+
         this.checkedListBox.set_filter_func(filter_func);
         this.unCheckedListBox.set_filter_func(filter_func);
         
+       
+        
+        this.box.append(this.checkedListBox);
+        this.box.append(this.unCheckedListBox);
+        this.stack.add_child(this.box);
+        this.stack.add_child(this.placeholder);
         this.group.add(this.searchBar);
-        this.group.add(this.checkedListBox);
-        this.group.add(this.unCheckedListBox);
-
+        this.group.add(this.stack);
         this.page.add(this.group);
 
         this.window.add(this.page);
