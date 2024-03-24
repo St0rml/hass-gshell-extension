@@ -93,10 +93,10 @@ class SettingsPage {
         this.stack = new Gtk.Stack({transition_type: "crossfade"});
         this.checkedListBox = new Gtk.ListBox({css_classes: ["boxed-list"], selection_mode: "none"});
         this.unCheckedListBox = new Gtk.ListBox({css_classes: ["boxed-list"], selection_mode: "none"});
-        this.searchBar = new Gtk.SearchBar({css_classes: ["boxed-list"], search_mode_enabled: true, show_close_button: false});
+        this.searchBar = new Gtk.SearchBar({search_mode_enabled: true, show_close_button: false});
         this.searchBar.set_key_capture_widget(this.group);
         this.searchEntry = new Gtk.SearchEntry({search_delay: 100, placeholder_text: _(`Search ${this.type}s ...`)});
-
+            // THis is a comment
         this.searchEntry.connect("search-changed", () => {
             this.result_count = -1;
             this.checkedListBox.invalidate_filter();
@@ -138,6 +138,7 @@ class SettingsPage {
         this.drop_target = Gtk.DropTarget.new(Gtk.ListBoxRow, Gdk.DragAction.MOVE);
         this.checkedListBox.add_controller(this.drop_target);
         this.refresh();
+        this.searchEntry.get_parent().add_css_class("custom-search-bar");
     }
 
     refresh(entries=null) {
@@ -156,10 +157,16 @@ class SettingsPage {
                 _(`No ${this.type} found. Please check your Home-Assistant connection settings.`)
             );
             this.unCheckedListBox.append(row);
+            this.checkedListBox.set_visible(false);
             return;
         }
 
         let enabledEntities = this._mscOptions.getEnabledByType(this.type);
+        // Hide checkedListBox, when no entity is activated/checked
+        if (enabledEntities.length === 0) {
+            this.checkedListBox.set_visible(false);
+        } else this.checkedListBox.set_visible(true);
+
         for (let entry of entries) {
             let row = SettingsPage.createEntityRow(
                 entry,
@@ -225,6 +232,12 @@ class SettingsPage {
             return;
         }
         this._mscOptions.setEnabledByType(this.type, currentEntities);
+
+        // Hide checkedListBox, when no entity is activated/checked
+        if (currentEntities.length === 0) {
+            this.checkedListBox.set_visible(false);
+        } else this.checkedListBox.set_visible(true);
+
         this.applyDnD(this.checkedListBox);
         Utils._log(
             "%s entries enabled: %s",
